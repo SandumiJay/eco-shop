@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import axios from 'axios'; // Import axios
 import { MessageCircle, Send, X, Minimize2, Maximize2 } from 'lucide-react';
 
 interface Message {
@@ -56,7 +57,7 @@ const ChatBot: React.FC = () => {
     setInputValue(e.target.value);
   };
   
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (inputValue.trim() === '') return;
     
     const newUserMessage: Message = {
@@ -70,12 +71,29 @@ const ChatBot: React.FC = () => {
     setInputValue('');
     setIsTyping(true);
     
-    // Simulate bot response after a delay
-    setTimeout(() => {
-      const botResponse = generateBotResponse(inputValue);
+    try {
+      // Send the user message to the backend
+      const response = await axios.post('http://127.0.0.1:5000/chat', { message: inputValue });
+      console.log(response.data);
+      const botResponse: Message = {
+        id: (Date.now() + 1).toString(),
+        text: response.data,
+        sender: 'bot',
+        timestamp: new Date()
+      };
       setMessages(prevMessages => [...prevMessages, botResponse]);
+    } catch (error) {
+      console.error('Error fetching bot response:', error);
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: 'Sorry, there was an issue with the bot. Please try again later.',
+        sender: 'bot',
+        timestamp: new Date()
+      };
+      setMessages(prevMessages => [...prevMessages, errorMessage]);
+    } finally {
       setIsTyping(false);
-    }, 1000);
+    }
   };
   
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -108,19 +126,15 @@ const ChatBot: React.FC = () => {
     let responseText = '';
     
     if (lowerCaseMessage.includes('bamboo') || lowerCaseMessage.includes('care')) {
-      responseText = 'For bamboo products, we recommend cleaning with mild soap and water, avoiding soaking for extended periods, and occasionally applying food-grade mineral oil to maintain bamboo kitchenware. You can find more detailed care instructions in our Care Instructions page.';
+      responseText = 'For bamboo products, we recommend cleaning with mild soap and water...';
     } else if (lowerCaseMessage.includes('certification') || lowerCaseMessage.includes('certified')) {
-      responseText = 'We prioritize products with recognized eco-certifications like GOTS (Global Organic Textile Standard), FSC (Forest Stewardship Council), and Fair Trade. You can learn more about these certifications on our Eco-Friendly Certifications page.';
+      responseText = 'We prioritize products with eco-certifications like GOTS, FSC, and Fair Trade...';
     } else if (lowerCaseMessage.includes('shipping') || lowerCaseMessage.includes('delivery')) {
-      responseText = 'Yes, we offer international shipping to most countries. Domestic orders typically arrive within 3-5 business days, while international orders may take 7-14 business days depending on the destination. All our shipping is carbon-offset!';
+      responseText = 'Yes, we offer international shipping to most countries...';
     } else if (lowerCaseMessage.includes('track') || lowerCaseMessage.includes('order')) {
-      responseText = 'You can track your order by logging into your account and viewing your order history. You should have also received a tracking number in your order confirmation email.';
-    } else if (lowerCaseMessage.includes('return') || lowerCaseMessage.includes('refund')) {
-      responseText = 'We offer a 30-day return policy for unused items in their original packaging. Please contact our customer service team to initiate a return.';
-    } else if (lowerCaseMessage.includes('hello') || lowerCaseMessage.includes('hi') || lowerCaseMessage.includes('hey')) {
-      responseText = 'Hello! How can I help you with your sustainable shopping today?';
+      responseText = 'You can track your order by logging into your account...';
     } else {
-      responseText = 'Thank you for your question. I\'m still learning, but I\'d be happy to connect you with our customer service team for more detailed information. You can email us at support@ecoshop.com or call us at +1 (234) 567-890.';
+      responseText = 'I am still learning! I will connect you to support for more details.';
     }
     
     return {
